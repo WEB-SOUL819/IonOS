@@ -1,4 +1,4 @@
-#define IONOS_PINMAP_H
+#ifndef IONOS_PINMAP_H
 #define IONOS_PINMAP_H
 
 // ============================================================================
