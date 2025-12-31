@@ -1,23 +1,37 @@
 #include "events.h"
+#include <Arduino.h>
 
 // ============================================================================
 // ionOS v1.0 - EVENT QUEUE IMPLEMENTATION
 // ============================================================================
 
 // Static member initialization
-Event EventQueue::queue[EventQueue::MAX_EVENTS];
-uint8_t EventQueue::head = 0;
-uint8_t EventQueue::tail = 0;
-uint8_t EventQueue::count = 0;
+Event EventQueue::event_queue[EventQueue::MAX_QUEUE_SIZE];
+uint16_t EventQueue::queue_head = 0;
+uint16_t EventQueue::queue_tail = 0;
+uint16_t EventQueue::queue_count = 0;
+uint16_t EventQueue::queue_capacity = 64;
+bool EventQueue::event_filter[256];
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Initialize event queue
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-bool EventQueue::init() {
-    head = 0;
-    tail = 0;
-    count = 0;
-    Serial.println("[EVENTS] Event queue initialized (max 32 events)");
+bool EventQueue::init(uint16_t queue_size) {
+    if (queue_size > MAX_QUEUE_SIZE) {
+        queue_size = MAX_QUEUE_SIZE;
+    }
+
+    queue_capacity = queue_size;
+    queue_head = 0;
+    queue_tail = 0;
+    queue_count = 0;
+
+    // Enable all events by default
+    for (int i = 0; i < 256; i++) {
+        event_filter[i] = true;
+    }
+
+    Serial.printf("[EVENT_QUEUE] Initialized with capacity %d\n", queue_capacity);
     return true;
 }
 
@@ -25,88 +39,111 @@ bool EventQueue::init() {
 // Shutdown event queue
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 void EventQueue::shutdown() {
-    clear();
+    queue_count = 0;
+    queue_head = 0;
+    queue_tail = 0;
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Enqueue event
+// Post an event to the queue
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-bool EventQueue::enqueue(const Event &event) {
-    if (count >= MAX_EVENTS) {
-        Serial.println("[EVENTS] Queue full, dropping event");
+bool EventQueue::postEvent(const Event &event) {
+    // Check if event type is filtered
+    if (!event_filter[event.type]) {
+        return false;  // Event filtered out
+    }
+
+    // Check if queue is full
+    if (queue_count >= queue_capacity) {
+        Serial.printf("[EVENT_QUEUE] Queue full! Dropping event type %d\n", event.type);
         return false;
     }
 
-    queue[tail] = event;
-    queue[tail].timestamp = millis();
-    tail = (tail + 1) % MAX_EVENTS;
-    count++;
+    // Add event to queue
+    event_queue[queue_tail] = event;
+    queue_tail = nextIndex(queue_tail);
+    queue_count++;
 
     return true;
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Dequeue event (FIFO)
+// Get event from queue (FIFO - removes from queue)
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-bool EventQueue::dequeue(Event &event) {
-    if (count == 0) {
-        return false;
+bool EventQueue::getEvent(Event &event) {
+    if (queue_count == 0) {
+        return false;  // Queue empty
     }
 
-    event = queue[head];
-    head = (head + 1) % MAX_EVENTS;
-    count--;
+    // Remove event from queue
+    event = event_queue[queue_head];
+    queue_head = nextIndex(queue_head);
+    queue_count--;
 
     return true;
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Peek at front event without removing
+// Peek at next event without removing
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-bool EventQueue::peek(Event &event) {
-    if (count == 0) {
-        return false;
+bool EventQueue::peekEvent(Event &event) {
+    if (queue_count == 0) {
+        return false;  // Queue empty
     }
 
-    event = queue[head];
+    event = event_queue[queue_head];
     return true;
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Clear all events
+// Flush all events
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-void EventQueue::clear() {
-    head = 0;
-    tail = 0;
-    count = 0;
+void EventQueue::flush() {
+    queue_count = 0;
+    queue_head = 0;
+    queue_tail = 0;
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Get current queue size
+// Get number of events in queue
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-uint8_t EventQueue::getQueueSize() {
-    return count;
+uint16_t EventQueue::getEventCount() {
+    return queue_count;
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Get maximum queue size
+// Get queue capacity
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-uint8_t EventQueue::getMaxQueueSize() {
-    return MAX_EVENTS;
+uint16_t EventQueue::getQueueCapacity() {
+    return queue_capacity;
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Check if queue is empty
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 bool EventQueue::isEmpty() {
-    return count == 0;
+    return queue_count == 0;
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Check if queue is full
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 bool EventQueue::isFull() {
-    return count >= MAX_EVENTS;
+    return queue_count >= queue_capacity;
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Set event filter (enable/disable event type)
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+void EventQueue::setEventFilter(EventType type, bool enabled) {
+    event_filter[type] = enabled;
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Calculate next circular index
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+uint16_t EventQueue::nextIndex(uint16_t current) {
+    return (current + 1) % queue_capacity;
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -116,8 +153,44 @@ void EventQueue::printDebugInfo() {
     Serial.println("\nâ•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—");
     Serial.println("â•‘  EVENT QUEUE DEBUG INFO           â•‘");
     Serial.println("â• â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•£");
-    Serial.printf("â•‘ Queue Size: %d/%d\n", count, MAX_EVENTS);
+    Serial.printf("â•‘ Queue Count: %d/%d\n", queue_count, queue_capacity);
+    Serial.printf("â•‘ Queue Head: %d\n", queue_head);
+    Serial.printf("â•‘ Queue Tail: %d\n", queue_tail);
+    Serial.printf("â•‘ Usage: %.1f%%\n", (float)queue_count / queue_capacity * 100.0f);
     Serial.printf("â•‘ Empty: %s\n", isEmpty() ? "YES" : "NO");
     Serial.printf("â•‘ Full: %s\n", isFull() ? "YES" : "NO");
     Serial.println("â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•\n");
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Print queue contents
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+void EventQueue::printQueue() {
+    if (queue_count == 0) {
+        Serial.println("[EVENT_QUEUE] Queue is empty");
+        return;
+    }
+
+    const char *event_names[] = {
+        "SYSTEM_INIT", "SYSTEM_SHUTDOWN", "SYSTEM_TICK", "SYSTEM_ERROR", "SYSTEM_WARNING",
+        "", "", "", "", "",
+        "BUTTON_PRESS", "BUTTON_RELEASE", "BUTTON_LONG_PRESS", "", "",
+        "", "", "", "", "",
+        "POWER_LOW_BATTERY", "POWER_CHARGING_START", "POWER_CHARGING_STOP", "POWER_SLEEP", "POWER_WAKE",
+        "", "", "", "", "",
+        "DISPLAY_UPDATE", "DISPLAY_ERROR", "", "", "",
+        "", "", "", "", "",
+        "APP_LAUNCH", "APP_CLOSE", "APP_SUSPEND", "APP_RESUME", "APP_BACK"
+    };
+
+    const char *priority_names[] = { "LOW", "NORMAL", "HIGH", "CRITICAL" };
+
+    Serial.println("[EVENT_QUEUE] Queue Contents:");
+    uint16_t idx = queue_head;
+    for (uint16_t i = 0; i < queue_count; i++) {
+        Event &evt = event_queue[idx];
+        Serial.printf("  [%d] Type=%d Priority=%s Data1=%d Data2=%d\n",
+            i, evt.type, priority_names[evt.priority], evt.data1, evt.data2);
+        idx = nextIndex(idx);
+    }
 }
