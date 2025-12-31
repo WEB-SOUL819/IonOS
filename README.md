@@ -1,4 +1,4 @@
-# ionOS v1.0 - Event-Driven OS for ESP32
+# ionOS v1.0 - OS for ESP32
 
 ionOS is a lightweight, production-ready embedded operating system for the 7Systm S1 handheld device powered by ESP32-WROOM. It features a clean layered architecture with event-driven kernel, hardware drivers, system services, and extensible apps.
 
