@@ -2,70 +2,98 @@
 #define IONOS_PINMAP_H
 
 // ============================================================================
-// ionOS v1.0 - PIN CONFIGURATION
-// ESP32-WROOM Pinout for 7Systm S1
+// ionOS v1.0 - PIN MAPPING
+// GPIO assignments for ESP32-WROOM on 7Systm S1 device
 // ============================================================================
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// DISPLAY (SSD1306 OLED, 128x64, I2C)
+// DISPLAY (SSD1306 OLED via I2C)
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 #define DISPLAY_SDA 21          // I2C Data
 #define DISPLAY_SCL 22          // I2C Clock
-#define DISPLAY_I2C_ADDR 0x3C   // SSD1306 default address
+#define DISPLAY_ADDR 0x3C       // I2C address
+#define DISPLAY_WIDTH 128
+#define DISPLAY_HEIGHT 64
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// BUTTONS (9 Tactile Switches)
+// RTC (DS3231 via I2C - same bus as display)
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-#define BTN_UP      34          // Navigation Up
-#define BTN_DOWN    35          // Navigation Down
-#define BTN_LEFT    32          // Navigation Left
-#define BTN_RIGHT   33          // Navigation Right
-#define BTN_CENTER  25          // Select/Confirm
-#define BTN_BACK    26          // Back/Cancel
-#define BTN_MENU    27          // Menu/Apps
-#define BTN_VOL_UP  14          // Volume Up
-#define BTN_VOL_DOWN 12         // Volume Down
+#define RTC_SDA 21              // Same I2C as display
+#define RTC_SCL 22              // Same I2C as display
+#define RTC_ADDR 0x68           // DS3231 I2C address
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// BATTERY & POWER
+// BUTTONS (6-button layout: UP, DOWN, LEFT, RIGHT, SELECT, BACK)
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-#define BAT_ADC_PIN 36          // ADC0 - Battery voltage (analog)
-#define BAT_ADC_CHANNEL 0       // ADC channel
-#define CHARGER_DETECT 39       // Charging status input (HIGH = charging)
+#define BTN_UP 34               // GPIO 34 (Input only, no internal pull-up)
+#define BTN_DOWN 35             // GPIO 35 (Input only, no internal pull-up)
+#define BTN_LEFT 32             // GPIO 32 (supports pull-up)
+#define BTN_RIGHT 33            // GPIO 33 (supports pull-up)
+#define BTN_SELECT 25           // GPIO 25 (supports pull-up)
+#define BTN_BACK 26             // GPIO 26 (supports pull-up)
+
+// Button debounce settings (milliseconds)
+#define BTN_DEBOUNCE_MS 20
+#define BTN_LONG_PRESS_MS 800
+
+// Button event IDs
+#define BTN_ID_UP 0
+#define BTN_ID_DOWN 1
+#define BTN_ID_LEFT 2
+#define BTN_ID_RIGHT 3
+#define BTN_ID_SELECT 4
+#define BTN_ID_BACK 5
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// RTC (DS3231 I2C)
+// BATTERY (ADC reading)
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-#define RTC_SDA 21              // Shared with display I2C
-#define RTC_SCL 22              // Shared with display I2C
-#define RTC_I2C_ADDR 0x68       // DS3231 I2C address
+#define BATTERY_ADC_PIN 36      // GPIO 36 (VP) - Analog input
+#define BATTERY_ADC_CHANNEL 0   // ADC1 channel 0
+#define BATTERY_MAX_VOLTAGE 4.2f // Fully charged
+#define BATTERY_MIN_VOLTAGE 3.0f // Cutoff voltage
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// AUDIO (I2S DAC MAX98357A)
+// CHARGING STATUS
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-#define AUDIO_I2S_BCLK 13       // Bit Clock
-#define AUDIO_I2S_DOUT 2        // Data Out (DIN on MAX98357A)
-#define AUDIO_I2S_LRCK 4        // LR Clock (WS on MAX98357A)
-#define AUDIO_I2S_PORT I2S_NUM_0 // I2S port 0
+#define CHARGING_PIN 27         // GPIO 27 - Digital input (HIGH = charging)
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// MICROSD CARD (SPI)
+// FLASHLIGHT LED (Optional)
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-#define SD_MOSI 23              // SPI MOSI
-#define SD_MISO 19              // SPI MISO
-#define SD_CLK  18              // SPI Clock
-#define SD_CS   5               // Chip Select
+#define FLASHLIGHT_PIN 12       // GPIO 12 - PWM capable
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// FLASHLIGHT (LED)
+// SD CARD (SPI)
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-#define LED_FLASHLIGHT 15       // GPIO for high-power LED (PWM capable)
-#define LED_PWM_CHANNEL 0       // PWM channel
+#define SD_CS_PIN 5             // GPIO 5 - Chip Select
+#define SD_MOSI_PIN 23          // GPIO 23 - Master Out Slave In
+#define SD_MISO_PIN 19          // GPIO 19 - Master In Slave Out
+#define SD_SCK_PIN 18           // GPIO 18 - Serial Clock
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// SYSTEM LEDs (Status indicators)
+// AUDIO (I2S DAC - MAX98357A)
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-#define LED_STATUS_RED 16       // Status LED (Red)
-#define LED_STATUS_GREEN 17     // Status LED (Green)
+#define AUDIO_I2S_BCK 14        // GPIO 14 - Bit Clock
+#define AUDIO_I2S_WS 15         // GPIO 15 - Word Select
+#define AUDIO_I2S_DOUT 2        // GPIO 2 - Data Out
+#define AUDIO_DAC_EN 4          // GPIO 4 - DAC Enable (active HIGH)
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// STATUS LEDS (Optional)
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+#define LED_POWER 13            // GPIO 13 - Power indicator
+#define LED_STATUS 17           // GPIO 17 - Activity indicator
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// UNUSED PINS (Available for expansion)
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// GPIO 0   - Strapping pin (can be used as output after boot)
+// GPIO 1   - UART TX (used for serial)
+// GPIO 3   - UART RX (used for serial)
+// GPIO 6-11 - SPI Flash (do not use)
+// GPIO 16  - Available
+// GPIO 20  - Not available on ESP32-WROOM
+// GPIO 24  - Not available on ESP32-WROOM
+// GPIO 28-31 - Not available on ESP32-WROOM
 
 #endif // IONOS_PINMAP_H
