@@ -3,40 +3,35 @@
 
 #include <stdint.h>
 #include <Arduino.h>
+#include "../config/pinmap.h"
 
 // ============================================================================
 // ionOS v1.0 - BUTTON DRIVER
-// Debounced button input with press/long-press detection
+// Debounced input handling for 6-button layout
+// UP, DOWN, LEFT, RIGHT, SELECT, BACK
 // ============================================================================
 
-enum ButtonEvent {
-    BTN_NONE = 0,
-    BTN_SHORT_PRESS = 1,
-    BTN_LONG_PRESS = 2,
-    BTN_RELEASE = 3,
-    BTN_REPEAT = 4
+enum ButtonState {
+    BTN_STATE_RELEASED = 0,
+    BTN_STATE_PRESSED = 1,
+    BTN_STATE_HELD = 2
 };
 
-enum ButtonID {
-    BTN_ID_UP = 0,
-    BTN_ID_DOWN = 1,
-    BTN_ID_LEFT = 2,
-    BTN_ID_RIGHT = 3,
-    BTN_ID_CENTER = 4,
-    BTN_ID_BACK = 5,
-    BTN_ID_MENU = 6,
-    BTN_ID_VOL_UP = 7,
-    BTN_ID_VOL_DOWN = 8,
-    BTN_ID_MAX = 9
+enum ButtonEvent {
+    BTN_EVENT_NONE = 0,
+    BTN_EVENT_SHORT_PRESS = 1,
+    BTN_EVENT_LONG_PRESS = 2,
+    BTN_EVENT_RELEASE = 3
 };
 
 struct Button {
     uint8_t pin;
     uint8_t id;
-    bool pressed;
-    bool released;
+    ButtonState state;
+    ButtonEvent last_event;
     uint32_t press_time;
-    uint32_t long_press_triggered;
+    uint32_t last_stable_time;
+    bool debouncing;
 };
 
 class ButtonDriver {
@@ -45,23 +40,39 @@ public:
     static bool init();
     static void shutdown();
 
-    // Main update loop (call from kernel tick)
+    // Button polling (call from main loop)
     static void update();
 
-    // Event checking
-    static ButtonEvent getEvent(ButtonID btn);
-    static bool isPressed(ButtonID btn);
-    static uint32_t getPressTime(ButtonID btn);
+    // Button state queries
+    static ButtonState getButtonState(uint8_t btn_id);
+    static ButtonEvent getLastEvent(uint8_t btn_id);
+    static uint32_t getPressTime(uint8_t btn_id);
+
+    // Check individual buttons
+    static bool isPressed(uint8_t btn_id);
+    static bool isHeld(uint8_t btn_id);
+    static bool wasPressed(uint8_t btn_id);   // Returns true once after press
+    static bool wasLongPressed(uint8_t btn_id);
+
+    // All buttons at once
+    static uint8_t getButtonCount();  // Returns 6
 
     // Debug
     static void printDebugInfo();
+    static void printButtonStates();
 
 private:
-    static Button buttons[BTN_ID_MAX];
-    static ButtonEvent last_event[BTN_ID_MAX];
+    static const uint8_t NUM_BUTTONS = 6;
+    static Button buttons[NUM_BUTTONS];
 
-    static void debounceButton(Button &btn);
-    static void updateButtonState(Button &btn);
+    // Pin mapping (from pinmap.h)
+    static const uint8_t button_pins[NUM_BUTTONS];
+
+    // Debounce logic
+    static void debounceButton(uint8_t btn_index);
+    static void handleButtonPress(uint8_t btn_index);
+    static void handleButtonRelease(uint8_t btn_index);
+    static bool readPin(uint8_t pin);
 };
 
 #endif // IONOS_BUTTON_DRIVER_H
